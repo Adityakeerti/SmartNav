@@ -1,0 +1,58 @@
+
+{
+  "nodes": [
+    "ISBT",
+    "Clock Tower",
+    "Pacific Mall",
+    "Forest Research Institute",
+    "Mussoorie Diversion",
+    "Rajpur Road",
+    "Clementown",
+    "IMA",
+    "Paltan Bazaar",
+    "Railway Station"
+  ],
+  "edges": [
+    {"from": "ISBT", "to": "Clock Tower", "base_weight": 8, "traffic": 5},
+    {"from": "Clock Tower", "to": "ISBT", "base_weight": 8, "traffic": 3},
+
+    {"from": "ISBT", "to": "Clementown", "base_weight": 6, "traffic": 0},
+    {"from": "Clementown", "to": "ISBT", "base_weight": 6, "traffic": 1},
+
+    {"from": "Clock Tower", "to": "Paltan Bazaar", "base_weight": 5, "traffic": 4},
+    {"from": "Paltan Bazaar", "to": "Clock Tower", "base_weight": 3, "traffic": 4},
+
+    {"from": "Clock Tower", "to": "Rajpur Road", "base_weight": 5, "traffic": 2},
+    {"from": "Rajpur Road", "to": "Clock Tower", "base_weight": 5, "traffic": 2},
+
+    {"from": "Paltan Bazaar", "to": "Railway Station", "base_weight": 4, "traffic": 2},
+    {"from": "Railway Station", "to": "Paltan Bazaar", "base_weight": 4, "traffic": 2},
+
+    {"from": "Rajpur Road", "to": "Pacific Mall", "base_weight": 7, "traffic": 3},
+    {"from": "Pacific Mall", "to": "Rajpur Road", "base_weight": 7, "traffic": 1},
+
+    {"from": "Rajpur Road", "to": "Mussoorie Diversion", "base_weight": 9, "traffic": 3},
+    {"from": "Mussoorie Diversion", "to": "Rajpur Road", "base_weight": 9, "traffic": 3},
+
+    {"from": "Mussoorie Diversion", "to": "Forest Research Institute", "base_weight": 8, "traffic": 0},
+    {"from": "Forest Research Institute", "to": "Mussoorie Diversion", "base_weight": 8, "traffic": 0},
+
+    {"from": "Pacific Mall", "to": "Forest Research Institute", "base_weight": 6, "traffic": 2},
+    {"from": "Forest Research Institute", "to": "Pacific Mall", "base_weight": 6, "traffic": 2},
+
+    {"from": "Clementown", "to": "IMA", "base_weight": 6, "traffic": 1},
+    {"from": "IMA", "to": "Clementown", "base_weight": 5, "traffic": 1},
+
+    {"from": "IMA", "to": "Railway Station", "base_weight": 7, "traffic": 3},
+    {"from": "Railway Station", "to": "IMA", "base_weight": 7, "traffic": 3},
+
+    {"from": "Railway Station", "to": "Clementown", "base_weight": 9, "traffic": 2},
+    {"from": "Clementown", "to": "Railway Station", "base_weight": 9, "traffic": 2},
+
+    {"from": "Railway Station", "to": "Forest Research Institute", "base_weight": 12, "traffic": 0},
+    {"from": "Forest Research Institute", "to": "Railway Station", "base_weight": 12, "traffic": 1},
+
+    {"from": "Clock Tower", "to": "IMA", "base_weight": 10, "traffic": 4},
+    {"from": "IMA", "to": "Clock Tower", "base_weight": 10, "traffic": 4}
+  ]
+}
