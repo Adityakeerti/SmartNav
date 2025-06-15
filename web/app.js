@@ -1,16 +1,34 @@
-// Map coordinates for Dehradun locations
+// Use real latitude/longitude for each location
 const locationCoordinates = {
-  "ISBT": { x: 150, y: 430 },
-  "Clock Tower": { x: 300, y: 350 },
-  "Pacific Mall": { x: 500, y: 250 },
-  "Forest Research Institute": { x: 650, y: 300 },
-  "Mussoorie Diversion": { x: 550, y: 150 },
-  "Rajpur Road": { x: 400, y: 200 },
-  "Clementown": { x: 200, y: 300 },
-  "IMA": { x: 350, y: 250 },
-  "Paltan Bazaar": { x: 380, y: 400 },
-  "Railway Station": { x: 480, y: 450 }
+  "ISBT": { lat: 30.2900, lng: 78.0250 },
+  "Clock Tower": { lat: 30.3256, lng: 78.0437 },
+  "Pacific Mall": { lat: 30.3387, lng: 78.0534 },
+  "Forest Research Institute": { lat: 30.3372, lng: 77.9975 },
+  "Mussoorie Diversion": { lat: 30.3643, lng: 78.0806 },
+  "Rajpur Road": { lat: 30.3629, lng: 78.0801 },
+  "Clementown": { lat: 30.2707, lng: 78.0322 },
+  "IMA": { lat: 30.3076, lng: 78.0126 },
+  "Paltan Bazaar": { lat: 30.3206, lng: 78.0405 },
+  "Railway Station": { lat: 30.3120, lng: 78.0287 }
 };
+
+// Define custom marker icons using leaflet-color-markers CDN
+const greenIcon = new L.Icon({
+  iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+const redIcon = new L.Icon({
+  iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
 
 // Graph data (would normally be fetched from server)
 const cityGraph = {
@@ -51,129 +69,59 @@ const cityGraph = {
   ]
 };
 
-// Initialize the map
+// Store references to Leaflet layers for easy update/removal
+let map, markerLayers = {}, edgeLayers = [], routeLayer = null;
+
+// Utility function to clear all markers
+function clearMarkers() {
+  Object.values(markerLayers).forEach(marker => map.removeLayer(marker));
+  markerLayers = {};
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-  drawMap();
+  // Initialize Leaflet map centered on Dehradun
+  map = L.map('map').setView([30.3256, 78.0437], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  // Draw all edges as grey polylines (keep this for context)
+  cityGraph.edges.forEach(edge => {
+    const from = locationCoordinates[edge.from];
+    const to = locationCoordinates[edge.to];
+    if (!from || !to) return;
+    const poly = L.polyline([
+      [from.lat, from.lng],
+      [to.lat, to.lng]
+    ], {
+      color: '#757575',
+      weight: 3,
+      opacity: 0.7
+    }).addTo(map);
+    edgeLayers.push(poly);
+  });
 });
 
-// Utility function to create safe IDs by replacing spaces and special characters
-function createSafeId(text) {
-  return text.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+// Utility function to clear previous route and markers
+function clearRoute() {
+  if (routeLayer) {
+    map.removeLayer(routeLayer);
+    routeLayer = null;
+  }
+  clearMarkers();
 }
 
-// Draw the basic map with all locations and roads
-function drawMap() {
-  const mapElement = document.getElementById('map');
-  mapElement.innerHTML = '';
-
-  // Add edges (roads) first so they're beneath the nodes
-  cityGraph.edges.forEach(edge => {
-    const fromCoord = locationCoordinates[edge.from];
-    const toCoord = locationCoordinates[edge.to];
-
-    if (!fromCoord || !toCoord) return;
-
-    // Calculate edge position and angle
-    const dx = toCoord.x - fromCoord.x;
-    const dy = toCoord.y - fromCoord.y;
-    const length = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-
-    // Create the edge element with safe IDs
-    const edgeElement = document.createElement('div');
-    edgeElement.className = 'map-edge';
-    const safeFromId = createSafeId(edge.from);
-    const safeToId = createSafeId(edge.to);
-    edgeElement.id = `edge-${safeFromId}-${safeToId}`;
-    edgeElement.style.width = `${length}px`;
-    edgeElement.style.left = `${fromCoord.x}px`;
-    edgeElement.style.top = `${fromCoord.y}px`;
-    edgeElement.style.transform = `rotate(${angle}deg)`;
-
-    // Apply traffic color to edge thickness
-    const trafficClass = edge.traffic > 3 ? 'high-traffic' :
-                       edge.traffic > 1 ? 'medium-traffic' : 'low-traffic';
-    edgeElement.classList.add(trafficClass);
-
-    // Add custom attribute for traffic info
-    edgeElement.setAttribute('data-traffic', edge.traffic);
-    edgeElement.setAttribute('data-weight', edge.base_weight + edge.traffic);
-    edgeElement.setAttribute('data-from', edge.from);
-    edgeElement.setAttribute('data-to', edge.to);
-
-    mapElement.appendChild(edgeElement);
-  });
-
-  // Add nodes (locations)
-  cityGraph.nodes.forEach(location => {
-    const coords = locationCoordinates[location];
-    if (!coords) return;
-
-    // Create node element with safe ID
-    const nodeElement = document.createElement('div');
-    nodeElement.className = 'map-node';
-    const safeNodeId = createSafeId(location);
-    nodeElement.id = `node-${safeNodeId}`;
-    nodeElement.style.left = `${coords.x}px`;
-    nodeElement.style.top = `${coords.y}px`;
-    nodeElement.setAttribute('data-location', location);
-
-    // Add tooltip on hover
-    nodeElement.title = location;
-
-    // Add location label
-    const labelElement = document.createElement('div');
-    labelElement.className = 'map-label';
-    labelElement.textContent = location;
-    labelElement.style.left = `${coords.x}px`;
-    labelElement.style.top = `${coords.y}px`;
-
-    mapElement.appendChild(nodeElement);
-    mapElement.appendChild(labelElement);
-
-    // Add click event to select this location
-    nodeElement.addEventListener('click', function() {
-      const startSelect = document.getElementById('start');
-      const endSelect = document.getElementById('end');
-
-      // If shift key is pressed, set as destination
-      if (window.event.shiftKey) {
-        endSelect.value = location;
-      } else {
-        startSelect.value = location;
-      }
-    });
-  });
-}
-
-// Find the shortest path between two locations
+// Find the shortest path between two locations and draw it on the map
 function findPath() {
   const src = document.getElementById("start").value;
   const dest = document.getElementById("end").value;
 
-  console.log(`Finding path from ${src} to ${dest}`);
-
-  // Reset previous path highlights
-  document.querySelectorAll('.map-node.path, .map-node.start, .map-node.end, .map-edge.path').forEach(el => {
-    el.classList.remove('path', 'start', 'end');
-  });
-
-  // Mark start and end nodes
-  const startNodeId = createSafeId(`node-${src}`);
-  const endNodeId = createSafeId(`node-${dest}`);
-
-  const startNode = document.getElementById(`node-${createSafeId(src)}`);
-  const endNode = document.getElementById(`node-${createSafeId(dest)}`);
-
-  console.log(`Looking for start node: node-${createSafeId(src)}`);
-  console.log(`Looking for end node: node-${createSafeId(dest)}`);
-
-  if (startNode) startNode.classList.add('start');
-  if (endNode) endNode.classList.add('end');
+  // Remove previous route and markers
+  clearRoute();
 
   // If backend is not available, use mock data instead
   if (src === dest) {
-    // Handle same source and destination
     document.getElementById("output").innerHTML = `
       <p class="instruction">Source and destination are the same location.</p>
     `;
@@ -181,11 +129,10 @@ function findPath() {
     return;
   }
 
-  // Try to connect to backend, if fails use mock data
+  // Fetch the path from backend
   fetch(`http://localhost:7000/path?src=${encodeURIComponent(src)}&dest=${encodeURIComponent(dest)}`)
     .then(res => {
       if (res.status === 404) {
-        // Handle the "No path found" response
         document.getElementById("output").innerHTML = `
           <p class="instruction">⚠️ No path available from ${src} to ${dest}.</p>
           <p>Try selecting different locations or check if there's a route available.</p>
@@ -199,18 +146,29 @@ function findPath() {
       return res.json();
     })
     .then(data => {
-      console.log("Response from server:", data);
-
-      // Check if the expected data structure exists
       if (data.path && Array.isArray(data.path)) {
+        // Build array of latlngs for the route
+        const latlngs = data.path.map(loc => {
+          const coords = locationCoordinates[loc];
+          return coords ? [coords.lat, coords.lng] : null;
+        }).filter(Boolean);
+        // Draw the route as a red polyline
+        routeLayer = L.polyline(latlngs, {
+          color: '#ff1744',
+          weight: 6,
+          opacity: 1
+        }).addTo(map);
+        // Add only start and end markers
+        const startCoords = locationCoordinates[data.path[0]];
+        const endCoords = locationCoordinates[data.path[data.path.length-1]];
+        if (startCoords) {
+          markerLayers[data.path[0]] = L.marker([startCoords.lat, startCoords.lng], { icon: greenIcon }).addTo(map).bindPopup(data.path[0]);
+        }
+        if (endCoords) {
+          markerLayers[data.path[data.path.length-1]] = L.marker([endCoords.lat, endCoords.lng], { icon: redIcon }).addTo(map).bindPopup(data.path[data.path.length-1]);
+        }
         // Display path information
-        const pathResult = data.path;
-        console.log("Path returned from server:", pathResult);
-
-        displayPathDetails(pathResult, data);
-
-        // Highlight the path on the map
-        highlightPath(pathResult);
+        displayPathDetails(data.path, data);
       } else {
         document.getElementById("output").innerHTML = `
           <p class="instruction">⚠️ No path data received from server.</p>
@@ -220,9 +178,7 @@ function findPath() {
     })
     .catch(error => {
       if (error.message !== "No path found") {
-        console.error("Error:", error);
         // Generate mock path for demonstration if server is not available
-        console.log("Using mock path data for demonstration");
         const mockPath = generateMockPath(src, dest);
         if (mockPath && mockPath.length > 0) {
           const mockData = {
@@ -237,9 +193,26 @@ function findPath() {
             isAStarOptimal: true,
             timeAdvantage: 2.5
           };
-
+          // Draw the mock route
+          const latlngs = mockPath.map(loc => {
+            const coords = locationCoordinates[loc];
+            return coords ? [coords.lat, coords.lng] : null;
+          }).filter(Boolean);
+          routeLayer = L.polyline(latlngs, {
+            color: '#ff1744',
+            weight: 6,
+            opacity: 1
+          }).addTo(map);
+          // Add only start and end markers
+          const startCoords = locationCoordinates[mockPath[0]];
+          const endCoords = locationCoordinates[mockPath[mockPath.length-1]];
+          if (startCoords) {
+            markerLayers[mockPath[0]] = L.marker([startCoords.lat, startCoords.lng], { icon: greenIcon }).addTo(map).bindPopup(mockPath[0]);
+          }
+          if (endCoords) {
+            markerLayers[mockPath[mockPath.length-1]] = L.marker([endCoords.lat, endCoords.lng], { icon: redIcon }).addTo(map).bindPopup(mockPath[mockPath.length-1]);
+          }
           displayPathDetails(mockPath, mockData);
-          highlightPath(mockPath);
         } else {
           document.getElementById("output").innerHTML = `
             <p class="instruction">❌ Error fetching path: ${error.message}</p>
@@ -291,57 +264,6 @@ function calculateMockDistance(path) {
     }
   }
   return distance;
-}
-
-// Highlight the found path on the map
-function highlightPath(path) {
-  console.log("Highlighting path:", path);
-
-  // Highlight nodes in the path
-  for (let i = 0; i < path.length; i++) {
-    const nodeId = `node-${createSafeId(path[i])}`;
-    console.log("Looking for node:", nodeId);
-    const nodeElement = document.getElementById(nodeId);
-
-    if (nodeElement && i > 0 && i < path.length - 1) {
-      nodeElement.classList.add('path');
-    }
-
-    // Highlight edges between consecutive nodes
-    if (i < path.length - 1) {
-      // Try to find the edge (direct or reverse)
-      const fromNode = path[i];
-      const toNode = path[i+1];
-
-      const safeFromId = createSafeId(fromNode);
-      const safeToId = createSafeId(toNode);
-
-      // Try direct edge first
-      const edgeId = `edge-${safeFromId}-${safeToId}`;
-      console.log("Looking for direct edge:", edgeId);
-      let edgeElement = document.getElementById(edgeId);
-
-      if (!edgeElement) {
-        // If direct edge not found, check for reverse edge
-        const reverseEdgeId = `edge-${safeToId}-${safeFromId}`;
-        console.log("Direct edge not found, trying reverse:", reverseEdgeId);
-        edgeElement = document.getElementById(reverseEdgeId);
-      }
-
-      if (edgeElement) {
-        console.log("Edge found, adding path class");
-        edgeElement.classList.add('path');
-      } else {
-        console.log("No edge found between", fromNode, "and", toNode);
-
-        // Debug: List all edges in the DOM
-        console.log("Available edges in DOM:");
-        document.querySelectorAll('.map-edge').forEach(el => {
-          console.log(el.id);
-        });
-      }
-    }
-  }
 }
 
 // Display path details in the results panel
